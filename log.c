@@ -42,7 +42,7 @@ void destroy_log()
 	}
 }
 
-void logging(int lvl, const char *file, const int line, const char *fmt, ...) {
+void logging(int lvl, const char *file, const char *func, const int line, const char *fmt, ...) {
     va_list ap;
     char buffer[512], *ptr = buffer;
     int size, cap = 512;
@@ -58,8 +58,8 @@ void logging(int lvl, const char *file, const int line, const char *fmt, ...) {
     size = strftime(ptr, cap, "[%Y-%m-%d %H:%M:%S]", tmp);
     ptr += size;
     cap -= size;
-    size = snprintf(ptr, cap, "[%-5s][%s:%d] ",
-                    LEVEL_NAMES[lvl], file, line);
+    size = snprintf(ptr, cap, "[%-5s][%s:%d][%s] ",
+                    LEVEL_NAMES[lvl], file, line, func);
     ptr += size;
     cap -= size;
 

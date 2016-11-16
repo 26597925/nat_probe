@@ -32,7 +32,7 @@
 
 
 /// 向外发包重试的次数，因为udp不可靠，所有多重试几次
-#define NP_RETRY_SEND_NUM	(1)//(10)
+#define NP_RETRY_SEND_NUM (2)
 
 /// 收发包的个数，必须与NP_PUBLIC_IP_NUM一致
 #define NP_SEND_AND_RECV_NUM (NP_PUBLIC_IP_NUM)

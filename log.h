@@ -13,8 +13,8 @@ enum _log_level {
 int configure_log(int level, const char* file, int use_console);
 void destroy_log();
 
-void logging(int lvl, const char *file, const int line, const char *fmt, ...);
+void logging(int lvl, const char *file, const char *func, const int line, const char *fmt, ...);
 
-#define XL_DEBUG(lvl, fmt, ...) logging(lvl, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define XL_DEBUG(lvl, fmt, ...) logging(lvl, __FILE__, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__)
 
 #endif /* __LOG_H_ */
