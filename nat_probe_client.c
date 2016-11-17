@@ -368,7 +368,7 @@ static int np_is_symmetric_nat(struct np_client_t *pnp_client, int *pnetwork_typ
 	in.s_addr = precv2->ip_addr;
 	XL_DEBUG(EN_PRINT_NOTICE, "nat after the conversion 2, ip: %s, port: %u", inet_ntoa(in), precv2->port);
 
-	if (precv1->ip_addr == precv2->ip_addr && precv1->port == precv1->port)
+	if (precv1->ip_addr != precv2->ip_addr || precv1->port != precv2->port)
 	{
 		*pnetwork_type = NP_SYMMETRIC_NAT;
 		return 0;
