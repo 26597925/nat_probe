@@ -43,6 +43,7 @@
 struct np_client_t
 {
 	int							sock;								/**< socket. */	
+	int                         ip_addr_num;						/**< 目的服务器有效IP的个数. >*/
 	uint32_t					ip_addr[NP_MAX_PUBLIC_IP_NUM];		/**< 与赚钱宝同运营商的外网IP. */
 	struct np_request_msg_t		send_msg[NP_SEND_AND_RECV_NUM];		/**< 待发送的数据. */
 	struct np_response_msg_t	recv_msg[NP_SEND_AND_RECV_NUM];		/**< 接收到的数据. */
@@ -284,7 +285,7 @@ static int np_send_and_recv_msg(struct np_client_t *pnp_client, int network_type
 	int i = 0, j = 0;
 	struct sockaddr_in dst_addr;
 
-	for (i = 0, j = 0; i < NP_MAX_PUBLIC_IP_NUM && j < send_msg_num; i++)
+	for (i = 0, j = 0; i < pnp_client->ip_addr_num && j < send_msg_num; i++)
 	{
 		memset(&dst_addr, 0, sizeof(dst_addr));
 		dst_addr.sin_family = AF_INET;
@@ -449,33 +450,35 @@ static void np_network_type_probe()
 		goto EXIT;
 	}
 
-	if (-1 == np_get_server_ip(NP_DOMAIN, np_client.ip_addr, ARRAY_SIZE(np_client.ip_addr), NULL))
+	if (-1 == np_get_server_ip(NP_DOMAIN, np_client.ip_addr, ARRAY_SIZE(np_client.ip_addr), &(np_client.ip_addr_num)))
 	{
 		XL_DEBUG(EN_PRINT_ERROR, "call np_get_server_ip() failed");
 		goto EXIT;
 	}
+	XL_DEBUG(EN_PRINT_DEBUG, "ip_addr_num: %d", np_client.ip_addr_num);
 
-	XL_DEBUG(EN_PRINT_ERROR, "np_is_public_network...");
+	XL_DEBUG(EN_PRINT_NOTICE, "np_is_public_network...");
 	if (0 == np_is_public_network(&np_client, &network_type))
 	{
 		goto EXIT;
 	}
-	XL_DEBUG(EN_PRINT_ERROR, "np_is_symmetric_nat...");
+	XL_DEBUG(EN_PRINT_NOTICE, "np_is_symmetric_nat...");
 	if (0 == np_is_symmetric_nat(&np_client, &network_type))
 	{
 		goto EXIT;
 	}	
-	XL_DEBUG(EN_PRINT_ERROR, "np_is_full_cone_nat...");	
+	XL_DEBUG(EN_PRINT_NOTICE, "np_is_full_cone_nat...");	
 	if (0 == np_is_full_cone_nat(&np_client, &network_type))
 	{
 		goto EXIT;
 	}
-	XL_DEBUG(EN_PRINT_ERROR, "np_is_restricted_cone_nat...");	
+	goto EXIT;
+	XL_DEBUG(EN_PRINT_NOTICE, "np_is_restricted_cone_nat...");	
 	if (0 == np_is_restricted_cone_nat(&np_client, &network_type))
 	{
 		goto EXIT;
 	}
-	XL_DEBUG(EN_PRINT_ERROR, "np_is_port_restricted_cone_nat...");	
+	XL_DEBUG(EN_PRINT_NOTICE, "np_is_port_restricted_cone_nat...");	
 	if (0 == np_is_port_restricted_cone_nat(&np_client, &network_type))
 	{
 		goto EXIT;
@@ -494,8 +497,8 @@ EXIT:
 
 int main(int __attribute__((unused))argc, char __attribute__((unused))*argv[])
 {
-	configure_log(EN_PRINT_NOTICE, NULL, 1);
-	np_nat_type_probe();
+	configure_log(EN_PRINT_DEBUG, NULL, 1);
+	np_network_type_probe();
 	XL_DEBUG(EN_PRINT_NOTICE, "nat type is %s", get_string_network_type(s_network_type));
 	destroy_log();
 	return 0;

@@ -106,8 +106,9 @@ static int create_socket(struct np_server_t *pnp_server)
 		retval = bind(sock, (const struct sockaddr *)&local_addr, sizeof(struct sockaddr));
 		if (retval < 0)
 		{
-			XL_DEBUG(EN_PRINT_ERROR, "call bind() failed, bind address failed, err: %s", strerror(errno));
-			goto ERR;
+			XL_DEBUG(EN_PRINT_WARN, "call bind() failed, bind address failed, err: %s", strerror(errno));
+			close(sock);
+			continue;
 		}
 
 		/// 设置收包的超时时间.
@@ -115,7 +116,8 @@ static int create_socket(struct np_server_t *pnp_server)
 		if (retval < 0)
 		{
 			XL_DEBUG(EN_PRINT_ERROR, "call setsockopt() failed, set SO_RCVTIMEO failed, err: %s", strerror(errno));
-			goto ERR;
+			close(sock);
+			continue;
 		}
 		pnp_server->addr[i].sock = sock;
 	}
@@ -396,7 +398,7 @@ int main(int __attribute__((unused))argc, char __attribute__((unused))*argv[])
 	for (i = 0; i < size; i++)
 	{
 		tmp_addr = &(np_server.addr[i]);
-		if (tmp_addr->port != NP_SERVER_PORT)
+		if (tmp_addr->port != NP_SERVER_PORT || tmp_addr->sock == -1)
 		{
 			continue;
 		}
