@@ -174,6 +174,8 @@ static int send_msg(struct np_client_t *pnp_client, int idx, const struct sockad
 	psend_msg = cJSON_Print(proot);
 	cJSON_Delete(proot);
 
+	XL_DEBUG(EN_PRINT_DEBUG, "psend_msg: %s", psend_msg);
+
 	send_len = strlen(psend_msg);
 
 	while (1)
@@ -293,7 +295,7 @@ static int np_send_and_recv_msg(struct np_client_t *pnp_client, int network_type
 		dst_addr.sin_addr.s_addr = pnp_client->ip_addr[i];
 
 		XL_DEBUG(EN_PRINT_DEBUG, "dst_addr, ip: %s", inet_ntoa(dst_addr.sin_addr));
-		
+
 		pnp_client->send_msg[j].msgid = generate_msgid();
 		pnp_client->send_msg[j].network_type = network_type;
 
@@ -303,7 +305,7 @@ static int np_send_and_recv_msg(struct np_client_t *pnp_client, int network_type
 			XL_DEBUG(EN_PRINT_DEBUG, "retry_num: %d", retry_num);
 			retry_num--;
 
-			if (-1 == send_msg(pnp_client, i, &dst_addr))
+			if (-1 == send_msg(pnp_client, j, &dst_addr))
 			{
 				// XXX:此IP不通，换下一个IP发送
 				XL_DEBUG(EN_PRINT_DEBUG, "call send_msg() failed");
@@ -496,7 +498,7 @@ EXIT:
 
 int main(int __attribute__((unused))argc, char __attribute__((unused))*argv[])
 {
-	configure_log(EN_PRINT_DEBUG, NULL, 1);
+	configure_log(EN_PRINT_NOTICE, NULL, 1);
 	np_network_type_probe();
 	XL_DEBUG(EN_PRINT_NOTICE, "nat type is %s", get_string_network_type(s_network_type));
 	destroy_log();
