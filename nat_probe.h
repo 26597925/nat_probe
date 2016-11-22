@@ -3,7 +3,7 @@
  * @author  <wanghao1@xunlei.com>
  * @date	Nov  9 21:07:06 CST 2016
  *
- * @brief	Ì½²âÂ·ÓÉÆ÷µÄNATÀàĞÍµÄ¹«¹²Í·ÎÄ¼ş
+ * @brief	æ¢æµ‹è·¯ç”±å™¨çš„NATç±»å‹çš„å…¬å…±å¤´æ–‡ä»¶
  *
  */
 
@@ -16,58 +16,62 @@
 extern "C" {
 #endif
 
-/// ÍøÂçÀàĞÍ±ä»¯ÊÂ¼ş
+/// ç½‘ç»œç±»å‹å˜åŒ–äº‹ä»¶
 #define NP_NETWORK_TYPE_CHANGE_EVENT	"nat_probe.network_type_change"
 
 enum
 {
-	NP_UNKNOWN					= 0,	/**< Î´ÖªÍøÂçÀàĞÍ. */
-	NP_PUBLIC_NETWORK,					/**< ¹«ÓĞÍøÂç. */
-	NP_FULL_CONE_NAT,					/**< È«×¶ĞÍNAT. */
-	NP_RESTRICTED_CONE_NAT,				/**< ÏŞÖÆĞÍNAT. */
-	NP_PORT_RESTRICTED_CONE_NAT,		/**< ¶Ë¿ÚÏŞÖÆĞÍNAT. */
-	NP_SYMMETRIC_NAT,					/**< ¶Ô³ÆĞÍNAT. */
+	NP_UNKNOWN					= 0,	/**< æœªçŸ¥ç½‘ç»œç±»å‹. */
+	NP_PUBLIC_NETWORK,					/**< å…¬æœ‰ç½‘ç»œ. */
+	NP_FULL_CONE_NAT,					/**< å…¨é”¥å‹NAT. */
+	NP_RESTRICTED_CONE_NAT,				/**< é™åˆ¶å‹NAT. */
+	NP_PORT_RESTRICTED_CONE_NAT,		/**< ç«¯å£é™åˆ¶å‹NAT. */
+	NP_SYMMETRIC_NAT,					/**< å¯¹ç§°å‹NAT. */
 };
 
-/// ÍâÍø·şÎñÆ÷µÄÓòÃû.
+/// å¤–ç½‘æœåŠ¡å™¨çš„åŸŸå.
 #define NP_DOMAIN	"t05b022.p2cdn.com"
 
-/// ÍâÍø·şÎñÆ÷µÄ¶Ë¿Ú.
+/// å¤–ç½‘æœåŠ¡å™¨çš„ç«¯å£.
 #define NP_SERVER_PORT	(61620)
 
-/// ×öNATÀàĞÍÅĞ¶ÏĞèÒª¹«ÍøIPµÄ¸öÊı.
+/// åšNATç±»å‹åˆ¤æ–­éœ€è¦å…¬ç½‘IPçš„ä¸ªæ•°.
 #define NP_PUBLIC_IP_NUM	(2)
+
+/// åŸŸåæœ€å¤§å¯ä»¥é…ç½®IPçš„ä¸ªæ•°
+#define NP_MAX_PUBLIC_IP_NUM	(10)
 
 struct np_request_msg_t
 {
-	int			msgid;			/**< ÏûÏ¢id. */
-	int			network_type;	/**< ÍøÂçÀàĞÍ. */
+	int			msgid;			/**< æ¶ˆæ¯id. */
+	int			network_type;	/**< ç½‘ç»œç±»å‹. */
 };
 
 struct np_response_msg_t
 {
-	int			msgid;			/**< ÏûÏ¢id. */
-	uint32_t	ip_addr;		/**< natºóµÄIPµØÖ·. */
-	uint16_t	port;			/**< natºóµÄIP¶Ë¿Ú. */
+	int			msgid;			/**< æ¶ˆæ¯id. */
+	uint32_t	ip_addr;		/**< natåçš„IPåœ°å€. */
+	uint16_t	port;			/**< natåçš„IPç«¯å£. */
 };
 
 
-/// ¼ÆËãÊı×éÔªËØ¸öÊı.
+/// è®¡ç®—æ•°ç»„å…ƒç´ ä¸ªæ•°.
 #define ARRAY_SIZE(x)	(sizeof(x)/sizeof((x)[0]))
 
 /**
- * ¸ù¾İÓòÃû»ñÈ¡IP
+ * æ ¹æ®åŸŸåè·å–IP
  *
- * @param domain	ÓòÃû»º´æÇø.
- * @param pip_addr	ipµØÖ·»º´æÇø.
- * @param ip_num    ipµØÖ·»º´æÇøµÄ´óĞ¡.
+ * @param domain	åŸŸåç¼“å­˜åŒº.
+ * @param pip_addr	ipåœ°å€ç¼“å­˜åŒº.
+ * @param ip_num    ipåœ°å€ç¼“å­˜åŒºçš„å¤§å°.
+ * @param pret_ip_num   æˆåŠŸè§£æipçš„ä¸ªæ•°ï¼Œä¸è¶…è¿‡ip_num
  *
  */
-int np_get_server_ip(const char* pdomain, uint32_t pip_addr[], int ip_num);
+int np_get_server_ip(const char* pdomain, uint32_t pip_addr[], int ip_num, int *pret_ip_num);
 
 /**
- * »ñÈ¡×Ö·û´®¸ñÊ½µÄÍøÂçÀàĞÍ
- * @param network_type	ÍøÂçÀàĞÍ
+ * è·å–å­—ç¬¦ä¸²æ ¼å¼çš„ç½‘ç»œç±»å‹
+ * @param network_type	ç½‘ç»œç±»å‹
  * 
  */
 const char *get_string_network_type(int network_type);

@@ -3,7 +3,7 @@
  * @author  <wanghao1@xunlei.com>
  * @date	Nov  9 21:07:06 CST 2016
  *
- * @brief	Ì½²âÂ·ÓÉÆ÷µÄNATÀàĞÍ¿Í»§¶Ë
+ * @brief	æ¢æµ‹è·¯ç”±å™¨çš„NATç±»å‹å®¢æˆ·ç«¯
  *
  */
 
@@ -31,26 +31,27 @@
 #include "cjson/cJSON.h"
 
 
-/// ÏòÍâ·¢°üÖØÊÔµÄ´ÎÊı£¬ÒòÎªudp²»¿É¿¿£¬ËùÓĞ¶àÖØÊÔ¼¸´Î
+/// å‘å¤–å‘åŒ…é‡è¯•çš„æ¬¡æ•°ï¼Œå› ä¸ºudpä¸å¯é ï¼Œæ‰€æœ‰å¤šé‡è¯•å‡ æ¬¡
 #define NP_RETRY_SEND_NUM (2)
 
-/// ÊÕ·¢°üµÄ¸öÊı£¬±ØĞëÓëNP_PUBLIC_IP_NUMÒ»ÖÂ
+/// æ”¶å‘åŒ…çš„ä¸ªæ•°ï¼Œå¿…é¡»ä¸NP_PUBLIC_IP_NUMä¸€è‡´
 #define NP_SEND_AND_RECV_NUM (NP_PUBLIC_IP_NUM)
 
-/// ¼ì²âNATÀàĞÍµÄ¼ä¸ôÊ±¼ä£¬24Ğ¡Ê±.
+/// æ£€æµ‹NATç±»å‹çš„é—´éš”æ—¶é—´ï¼Œ24å°æ—¶.
 #define NP_NAT_PROBE_INTERVAL_TIME	(24*60*60*1000)
 
 struct np_client_t
 {
 	int							sock;								/**< socket. */	
-	uint32_t					ip_addr[NP_PUBLIC_IP_NUM];			/**< Óë×¬Ç®±¦Í¬ÔËÓªÉÌµÄÍâÍøIP. */
-	struct np_request_msg_t		send_msg[NP_SEND_AND_RECV_NUM];		/**< ´ı·¢ËÍµÄÊı¾İ. */
-	struct np_response_msg_t	recv_msg[NP_SEND_AND_RECV_NUM];		/**< ½ÓÊÕµ½µÄÊı¾İ. */
+	uint32_t					ip_addr[NP_MAX_PUBLIC_IP_NUM];		/**< ä¸èµšé’±å®åŒè¿è¥å•†çš„å¤–ç½‘IP. */
+	struct np_request_msg_t		send_msg[NP_SEND_AND_RECV_NUM];		/**< å¾…å‘é€çš„æ•°æ®. */
+	struct np_response_msg_t	recv_msg[NP_SEND_AND_RECV_NUM];		/**< æ¥æ”¶åˆ°çš„æ•°æ®. */
 };
 
-/// ×¬Ç®±¦ËùÔÚµÄÍøÂçÀàĞÍ.
+/// èµšé’±å®æ‰€åœ¨çš„ç½‘ç»œç±»å‹.
 static int s_network_type = NP_UNKNOWN;
 
+/// ç”Ÿæˆæ¶ˆæ¯id
 static int generate_msgid()
 {
 	static int msgid = 0;
@@ -64,6 +65,7 @@ static int generate_msgid()
 	return msgid;
 }
 
+/// åˆ¤æ–­æ˜¯å¦æ˜¯èµšé’±å®è‡ªå·±é…ç½®çš„IP
 static int is_local_ip(const uint32_t ip_addr)
 {
 	int sock = -1;
@@ -83,7 +85,7 @@ static int is_local_ip(const uint32_t ip_addr)
 	ifc.ifc_len = sizeof(tmp_buf);
 	ifc.ifc_buf = tmp_buf;
 
-	// »ñÈ¡Ã¿Ò»¸öÍø¿¨µÄÅäÖÃ
+	// è·å–æ¯ä¸€ä¸ªç½‘å¡çš„é…ç½®
 	if (-1 == ioctl(sock, SIOCGIFCONF, &ifc))
 	{
 		XL_DEBUG(EN_PRINT_ERROR, "ioctl SIOCGIFCONF failed, err: %s\n", strerror(errno));
@@ -104,7 +106,7 @@ static int is_local_ip(const uint32_t ip_addr)
 		{
 			continue;
 		}
-		//»ñÈ¡IPµØÖ·
+		//è·å–IPåœ°å€
 		if (-1 == ioctl(sock, SIOCGIFADDR, &ifr))
 		{
 			XL_DEBUG(EN_PRINT_ERROR, "ioctl SIOCGIFADDR failed, ifr_name: %s, err: %s\n", ifr.ifr_name, strerror(errno));
@@ -125,11 +127,11 @@ ERR:
 	return 0;
 }
 
+/// åˆ›å»ºsocket
 static int create_socket()
 {
-	struct timeval timeout = { 1, 0 };
+	struct timeval timeout = { 0, 500000 }; //500ms
 	int sock = -1, retval = -1;
-	//int enable = 1;
 
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sock < 0)
@@ -137,7 +139,7 @@ static int create_socket()
 		XL_DEBUG(EN_PRINT_ERROR, "call socket() failed, err: %s", strerror(errno));
 		goto ERR;
 	}
-	/// ÉèÖÃÊÕµ½µÄ³¬Ê±Ê±¼ä
+	/// è®¾ç½®æ”¶åˆ°çš„è¶…æ—¶æ—¶é—´
 	retval = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 	if (retval < 0)
 	{
@@ -153,6 +155,7 @@ ERR:
 	return -1;
 }
 
+/// å‘é€æ¶ˆæ¯
 static int send_msg(struct np_client_t *pnp_client, int idx, const struct sockaddr_in *pdst_addr)
 {
 	assert(pnp_client != NULL);
@@ -183,13 +186,13 @@ static int send_msg(struct np_client_t *pnp_client, int idx, const struct sockad
 			}
 			else
 			{
-				XL_DEBUG(EN_PRINT_ERROR, "call sendto() failed, tmp_len: %d, err: %s", tmp_len, strerror(errno));
+				XL_DEBUG(EN_PRINT_DEBUG, "[error] call sendto() failed, tmp_len: %d, err: %s", tmp_len, strerror(errno));
 				goto ERR;
 			}
 		}
 		if (send_len != tmp_len)
 		{
-			XL_DEBUG(EN_PRINT_ERROR, "call sendto() failed, tmp_len: %d, send_len: %d", tmp_len, send_len);
+			XL_DEBUG(EN_PRINT_DEBUG, "[error] call sendto() failed, tmp_len: %d, send_len: %d", tmp_len, send_len);
 			goto ERR;
 		}
 		break;
@@ -202,6 +205,7 @@ ERR:
 	return -1;
 }
 
+/// æ¥æ”¶æ¶ˆæ¯
 static int recv_msg(struct np_client_t *pnp_client, int idx)
 {
 	assert(pnp_client != NULL);
@@ -213,7 +217,7 @@ static int recv_msg(struct np_client_t *pnp_client, int idx)
 	precv_msg = malloc(128);
 	if (NULL == precv_msg)
 	{
-		XL_DEBUG(EN_PRINT_ERROR, "call malloc() failed, err: %s", strerror(errno));
+		XL_DEBUG(EN_PRINT_DEBUG, "[error] call malloc() failed, err: %s", strerror(errno));
 		goto ERR;
 	}
 	while (1)
@@ -227,7 +231,7 @@ static int recv_msg(struct np_client_t *pnp_client, int idx)
 			}
 			else
 			{
-				XL_DEBUG(EN_PRINT_DEBUG, "call recvfrom() failed, tmp_len: %d, err: %s", tmp_len, strerror(errno));
+				XL_DEBUG(EN_PRINT_DEBUG, "[error] call recvfrom() failed, tmp_len: %d, err: %s", tmp_len, strerror(errno));
 				goto ERR;
 			}
 		}
@@ -271,15 +275,16 @@ ERR:
 	return -1;
 }
 
+/// å‘é€&æ¥æ”¶æ¶ˆæ¯
 static int np_send_and_recv_msg(struct np_client_t *pnp_client, int network_type, int send_msg_num)
 {
 	assert(pnp_client != NULL);
 	assert(send_msg_num <= NP_PUBLIC_IP_NUM);
 
-	int i = 0, recv_success_num = 0;
+	int i = 0, j = 0;
 	struct sockaddr_in dst_addr;
 
-	for (i = 0; i < send_msg_num; i++)
+	for (i = 0, j = 0; i < NP_MAX_PUBLIC_IP_NUM && j < send_msg_num; i++)
 	{
 		memset(&dst_addr, 0, sizeof(dst_addr));
 		dst_addr.sin_family = AF_INET;
@@ -288,8 +293,8 @@ static int np_send_and_recv_msg(struct np_client_t *pnp_client, int network_type
 
 		XL_DEBUG(EN_PRINT_DEBUG, "dst_addr, ip: %s", inet_ntoa(dst_addr.sin_addr));
 		
-		pnp_client->send_msg[i].msgid = generate_msgid();
-		pnp_client->send_msg[i].network_type = network_type;
+		pnp_client->send_msg[j].msgid = generate_msgid();
+		pnp_client->send_msg[j].network_type = network_type;
 
 		int retry_num = NP_RETRY_SEND_NUM;
 		while (retry_num > 0)
@@ -299,23 +304,24 @@ static int np_send_and_recv_msg(struct np_client_t *pnp_client, int network_type
 
 			if (-1 == send_msg(pnp_client, i, &dst_addr))
 			{
-				XL_DEBUG(EN_PRINT_ERROR, "call send_msg() failed");
-				return -1;
+				// XXX:æ­¤IPä¸é€šï¼Œæ¢ä¸‹ä¸€ä¸ªIPå‘é€
+				XL_DEBUG(EN_PRINT_DEBUG, "call send_msg() failed");
+				break;
 			}
 
-			if (0 == recv_msg(pnp_client, i))
+			if (0 == recv_msg(pnp_client, j))
 			{
-				if (pnp_client->recv_msg[i].msgid == pnp_client->send_msg[i].msgid)
+				if (pnp_client->recv_msg[j].msgid == pnp_client->send_msg[j].msgid)
 				{
-					// ÊÕµ½ÕıÈ·µÄ»Ø¸´
-					recv_success_num += 1;
+					// æ”¶åˆ°æ­£ç¡®çš„å›å¤
+					j++;
 					break;
 				}
 			}
 			sleep(1);
 		}
 	}
-	if (recv_success_num < send_msg_num)
+	if (j < send_msg_num)
 	{
 		XL_DEBUG(EN_PRINT_DEBUG, "recvfrom msg failed");
 		return -1;
@@ -333,7 +339,7 @@ static int np_is_public_network(struct np_client_t *pnp_client, int *pnetwork_ty
 
 	if (-1 == np_send_and_recv_msg(pnp_client, NP_PUBLIC_NETWORK, 1))
 	{
-		XL_DEBUG(EN_PRINT_DEBUG, "call np_send_and_recv_msg() failed");
+		XL_DEBUG(EN_PRINT_DEBUG, "[error] call np_send_and_recv_msg() failed");
 		return -1;
 	}
 	
@@ -344,10 +350,12 @@ static int np_is_public_network(struct np_client_t *pnp_client, int *pnetwork_ty
 	{
 		return -1;
 	}
+	XL_DEBUG(EN_PRINT_NOTICE, "nat type is NP_PUBLIC_NETWORK");
 	*pnetwork_type = NP_PUBLIC_NETWORK;
 	return 0;
 }
 
+/// åˆ¤æ–­ç½‘ç»œç±»å‹æ˜¯å¦æ˜¯å¯¹ç§°å‹nat
 static int np_is_symmetric_nat(struct np_client_t *pnp_client, int *pnetwork_type)
 {
 	assert(pnp_client != NULL);
@@ -359,7 +367,7 @@ static int np_is_symmetric_nat(struct np_client_t *pnp_client, int *pnetwork_typ
 
 	if (-1 == np_send_and_recv_msg(pnp_client, NP_SYMMETRIC_NAT, 2))
 	{
-		XL_DEBUG(EN_PRINT_DEBUG, "call np_send_and_recv_msg() failed");
+		XL_DEBUG(EN_PRINT_DEBUG, "[error] call np_send_and_recv_msg() failed");
 		return -1;
 	}
 	
@@ -370,12 +378,14 @@ static int np_is_symmetric_nat(struct np_client_t *pnp_client, int *pnetwork_typ
 
 	if (precv1->ip_addr != precv2->ip_addr || precv1->port != precv2->port)
 	{
+		XL_DEBUG(EN_PRINT_NOTICE, "nat type is SYMMETRIC_NAT");
 		*pnetwork_type = NP_SYMMETRIC_NAT;
 		return 0;
 	}
 	return -1;
 }
 
+/// åˆ¤æ–­ç½‘ç»œç±»å‹æ˜¯å¦æ˜¯å…¨é”¥å‹nat
 static int np_is_full_cone_nat(struct np_client_t *pnp_client, int *pnetwork_type)
 {
 	assert(pnp_client != NULL);
@@ -383,13 +393,15 @@ static int np_is_full_cone_nat(struct np_client_t *pnp_client, int *pnetwork_typ
 
 	if (-1 == np_send_and_recv_msg(pnp_client, NP_FULL_CONE_NAT, 1))
 	{
-		XL_DEBUG(EN_PRINT_DEBUG, "call np_send_and_recv_msg() failed");
+		XL_DEBUG(EN_PRINT_DEBUG, "[error] call np_send_and_recv_msg() failed");
 		return -1;
 	}
+	XL_DEBUG(EN_PRINT_NOTICE, "nat type is NP_FULL_CONE_NAT");
 	*pnetwork_type = NP_FULL_CONE_NAT;
 	return 0;
 }
 
+/// åˆ¤æ–­ç½‘ç»œç±»å‹æ˜¯å¦æ˜¯é™åˆ¶é”¥å‹nat
 static int np_is_restricted_cone_nat(struct np_client_t *pnp_client, int *pnetwork_type)
 {
 	assert(pnp_client != NULL);
@@ -397,13 +409,15 @@ static int np_is_restricted_cone_nat(struct np_client_t *pnp_client, int *pnetwo
 
 	if (-1 == np_send_and_recv_msg(pnp_client, NP_RESTRICTED_CONE_NAT, 1))
 	{
-		XL_DEBUG(EN_PRINT_DEBUG, "call np_send_and_recv_msg() failed");
+		XL_DEBUG(EN_PRINT_DEBUG, "[error] call np_send_and_recv_msg() failed");
 		return -1;
 	}
+	XL_DEBUG(EN_PRINT_NOTICE, "nat type is NP_RESTRICTED_CONE_NAT");
 	*pnetwork_type = NP_RESTRICTED_CONE_NAT;
 	return 0;
 }
 
+/// åˆ¤æ–­ç½‘ç»œç±»å‹æ˜¯å¦æ˜¯ç«¯å£é™åˆ¶é”¥å‹nat
 static int np_is_port_restricted_cone_nat(struct np_client_t *pnp_client, int *pnetwork_type)
 {
 	assert(pnp_client != NULL);
@@ -411,15 +425,19 @@ static int np_is_port_restricted_cone_nat(struct np_client_t *pnp_client, int *p
 
 	if (-1 == np_send_and_recv_msg(pnp_client, NP_PORT_RESTRICTED_CONE_NAT, 1))
 	{
-		XL_DEBUG(EN_PRINT_DEBUG, "call np_send_and_recv_msg() failed");
+		XL_DEBUG(EN_PRINT_DEBUG, "[error] call np_send_and_recv_msg() failed");
 		return -1;
 	}
+	XL_DEBUG(EN_PRINT_NOTICE, "nat type is NP_PORT_RESTRICTED_CONE_NAT");
 	*pnetwork_type = NP_PORT_RESTRICTED_CONE_NAT;
 	return 0;
 }
 
-static void np_nat_type_probe()
+/// ç½‘ç»œç±»å‹æ¢æµ‹
+static void np_network_type_probe()
 {
+	XL_DEBUG(EN_PRINT_NOTICE, "nat probe start...");
+
 	int network_type = NP_UNKNOWN;
 	struct np_client_t np_client;
 
@@ -431,28 +449,33 @@ static void np_nat_type_probe()
 		goto EXIT;
 	}
 
-	if (-1 == np_get_server_ip(NP_DOMAIN, np_client.ip_addr, ARRAY_SIZE(np_client.ip_addr)))
+	if (-1 == np_get_server_ip(NP_DOMAIN, np_client.ip_addr, ARRAY_SIZE(np_client.ip_addr), NULL))
 	{
 		XL_DEBUG(EN_PRINT_ERROR, "call np_get_server_ip() failed");
 		goto EXIT;
 	}
 
+	XL_DEBUG(EN_PRINT_ERROR, "np_is_public_network...");
 	if (0 == np_is_public_network(&np_client, &network_type))
 	{
 		goto EXIT;
 	}
+	XL_DEBUG(EN_PRINT_ERROR, "np_is_symmetric_nat...");
 	if (0 == np_is_symmetric_nat(&np_client, &network_type))
 	{
 		goto EXIT;
-	}
+	}	
+	XL_DEBUG(EN_PRINT_ERROR, "np_is_full_cone_nat...");	
 	if (0 == np_is_full_cone_nat(&np_client, &network_type))
 	{
 		goto EXIT;
 	}
+	XL_DEBUG(EN_PRINT_ERROR, "np_is_restricted_cone_nat...");	
 	if (0 == np_is_restricted_cone_nat(&np_client, &network_type))
 	{
 		goto EXIT;
 	}
+	XL_DEBUG(EN_PRINT_ERROR, "np_is_port_restricted_cone_nat...");	
 	if (0 == np_is_port_restricted_cone_nat(&np_client, &network_type))
 	{
 		goto EXIT;
@@ -466,6 +489,7 @@ EXIT:
 	{
 		close(np_client.sock);
 	}
+	XL_DEBUG(EN_PRINT_NOTICE, "current network_type: %d", s_network_type);
 }
 
 int main(int __attribute__((unused))argc, char __attribute__((unused))*argv[])

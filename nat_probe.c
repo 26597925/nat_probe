@@ -3,7 +3,7 @@
  * @author  <wanghao1@xunlei.com>
  * @date	Nov  9 21:07:06 CST 2016
  *
- * @brief	Ì½²âÂ·ÓÉÆ÷µÄNATÀàĞÍµÄ¹«¹²´úÂë
+ * @brief	æ¢æµ‹è·¯ç”±å™¨çš„NATç±»å‹çš„å…¬å…±ä»£ç 
  *
  */
 
@@ -19,12 +19,11 @@
 #include <string.h>
 
 
-int np_get_server_ip(const char* pdomain, uint32_t pip_addr[], int ip_num)
+int np_get_server_ip(const char* pdomain, uint32_t pip_addr[], int ip_num, int *pret_ip_num)
 {
 	assert(pdomain != NULL);
 	assert(pip_addr != NULL);
-	assert(ip_num == NP_PUBLIC_IP_NUM);
-
+	
 	int retval = -1, count = 0;
 	struct addrinfo *answer = NULL, *curr = NULL;
 	struct addrinfo hint;
@@ -33,7 +32,7 @@ int np_get_server_ip(const char* pdomain, uint32_t pip_addr[], int ip_num)
 	hint.ai_family = AF_INET;
 	hint.ai_socktype = SOCK_DGRAM;
 
-	/// »ñÈ¡·şÎñÆ÷ÓòÃû¶ÔÓ¦µÄ IP µØÖ·.
+	/// è·å–æœåŠ¡å™¨åŸŸåå¯¹åº”çš„ IP åœ°å€.
 	retval = getaddrinfo(pdomain, NULL, &hint, &answer);
 	if (retval != 0)
 	{
@@ -43,18 +42,24 @@ int np_get_server_ip(const char* pdomain, uint32_t pip_addr[], int ip_num)
 
 	for (curr = answer; curr != NULL; curr = curr->ai_next) {
 		XL_DEBUG(EN_PRINT_DEBUG, "count: %d, ip_addr: %s", count, inet_ntoa((((struct sockaddr_in *)(curr->ai_addr))->sin_addr)));
-		/// XXX: ×¢Òâ´Ë´¦ÊÇÍøÂçĞò
+		/// XXX: æ³¨æ„æ­¤å¤„æ˜¯ç½‘ç»œåº
 		pip_addr[count++] = ((struct sockaddr_in *)(curr->ai_addr))->sin_addr.s_addr;
 		if (count == ip_num)
 		{
 			break;
 		}
 	}
-	if (count < ip_num)
+	if (count < NP_PUBLIC_IP_NUM)
 	{
 		XL_DEBUG(EN_PRINT_ERROR, "ip number is not enough, need: %d, count: %d", ip_num, count);
 		goto ERR;
 	}
+	if (pret_ip_num != NULL)
+	{
+		*pret_ip_num = count;
+		XL_DEBUG(EN_PRINT_NOTICE, "server ip num is %d", *pret_ip_num);
+	}
+	
 	freeaddrinfo(answer);
 	return 0;
 ERR:

@@ -3,7 +3,7 @@
  * @author  <wanghao1@xunlei.com>
  * @date	Nov  9 21:07:06 CST 2016
  *
- * @brief	Ì½²âÂ·ÓÉÆ÷µÄNATÀàĞÍ·şÎñ¶Ë
+ * @brief	æ¢æµ‹è·¯ç”±å™¨çš„NATç±»å‹æœåŠ¡ç«¯
  *
  */
 
@@ -23,25 +23,25 @@
 #include <signal.h>
 #include "cjson/cJSON.h"
 
-/// SERVER¶ËĞèÒªµÄsocketµÄ¸öÊı
-#define NP_SERVER_SOCKET_NUM	(NP_PUBLIC_IP_NUM*2)
+/// SERVERç«¯éœ€è¦çš„socketçš„ä¸ªæ•°
+#define NP_SERVER_SOCKET_NUM	(NP_MAX_PUBLIC_IP_NUM*2)
 
 struct np_addr_t
 {
 	uint32_t			ip;				/**< ip. */
 	uint16_t			port;			/**< port. */
 	int					sock;			/**< socket. */
-	struct event		event_read;		/**< Óësocket¹ØÁªµÄ¶ÁÊÂ¼ş. */
+	struct event		event_read;		/**< ä¸socketå…³è”çš„è¯»äº‹ä»¶. */
 };
 
 struct np_server_t
 {
-	struct np_addr_t			addr[NP_SERVER_SOCKET_NUM];	/**< ·şÎñ¶Ë¶ÔÍâÌá¹©µÄsocketµØÖ·. */
-	struct np_response_msg_t	send_msg;		/**< ´ı·¢ËÍµÄÊı¾İ. */
-	struct np_request_msg_t		recv_msg;		/**< ½ÓÊÕµ½µÄÊı¾İ. */
+	struct np_addr_t			addr[NP_SERVER_SOCKET_NUM];	/**< æœåŠ¡ç«¯å¯¹å¤–æä¾›çš„socketåœ°å€. */
+	struct np_response_msg_t	send_msg;		/**< å¾…å‘é€çš„æ•°æ®. */
+	struct np_request_msg_t		recv_msg;		/**< æ¥æ”¶åˆ°çš„æ•°æ®. */
 };
 
-/// Ïú»Ùsocket
+/// é”€æ¯socket
 static void destroy_socket(struct np_server_t *pnp_server)
 {
 	assert(pnp_server != NULL);
@@ -57,7 +57,7 @@ static void destroy_socket(struct np_server_t *pnp_server)
 	}
 }
 
-/// ´´½¨socket
+/// åˆ›å»ºsocket
 static int create_socket(struct np_server_t *pnp_server)
 {
 	assert(pnp_server != NULL);
@@ -65,18 +65,18 @@ static int create_socket(struct np_server_t *pnp_server)
 	struct timeval timeout = { 0, 500000 };
 	int sock = -1, retval = -1;
 	struct sockaddr_in local_addr;
-	uint32_t tmp_ip_addr[NP_PUBLIC_IP_NUM] = { 0 };
-	int i = 0, j = 0, size = 0;
+	uint32_t tmp_ip_addr[NP_MAX_PUBLIC_IP_NUM] = { 0 };
+	int i = 0, j = 0, ret_ip_num = 0, create_sock_num = 0;
 
-	size = ARRAY_SIZE(tmp_ip_addr);
-	if (-1 == np_get_server_ip(NP_DOMAIN, tmp_ip_addr, size))
+	if (-1 == np_get_server_ip(NP_DOMAIN, tmp_ip_addr, ARRAY_SIZE(tmp_ip_addr), &ret_ip_num))
 	{
 		XL_DEBUG(EN_PRINT_ERROR, "call get_server_ip() failed");
 		goto ERR;
 	}
-
+	create_sock_num = ret_ip_num * 2;
+	
 	j = 0;
-	for (i = 0; i < size; i++)
+	for (i = 0; i < create_sock_num; i++)
 	{
 		pnp_server->addr[j].ip = tmp_ip_addr[i];
 		pnp_server->addr[j].port = NP_SERVER_PORT;
@@ -87,8 +87,7 @@ static int create_socket(struct np_server_t *pnp_server)
 		j += 2;
 	}
 
-	size = ARRAY_SIZE(pnp_server->addr);
-	for (i = 0; i < size; i++)
+	for (i = 0; i < create_sock_num; i++)
 	{
 		sock = socket(AF_INET, SOCK_DGRAM, 0);
 		if (sock < 0)
@@ -111,7 +110,7 @@ static int create_socket(struct np_server_t *pnp_server)
 			goto ERR;
 		}
 
-		/// ÉèÖÃÊÕ°üµÄ³¬Ê±Ê±¼ä.
+		/// è®¾ç½®æ”¶åŒ…çš„è¶…æ—¶æ—¶é—´.
 		retval = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 		if (retval < 0)
 		{
@@ -126,7 +125,7 @@ ERR:
 	return -1;
 }
 
-/// ÊÕÏûÏ¢
+/// æ”¶æ¶ˆæ¯
 static int recv_msg(int sock, struct np_server_t *pnp_server, struct sockaddr_in *pclient_addr)
 {
 	assert(pnp_server != NULL);
@@ -186,7 +185,7 @@ static int recv_msg(int sock, struct np_server_t *pnp_server, struct sockaddr_in
 	precv->msgid = pmsgid->valueint;
 	precv->network_type = pnetwork_type->valueint;
 	psend->msgid = precv->msgid;
-	// XXX:´Ë´¦ÊÇÍøÂçĞò
+	// XXX:æ­¤å¤„æ˜¯ç½‘ç»œåº
 	psend->ip_addr = pclient_addr->sin_addr.s_addr;
 	psend->port = pclient_addr->sin_port;
 
@@ -202,7 +201,7 @@ ERR:
 	return -1;
 }
 
-/// ·¢ËÍÏûÏ¢
+/// å‘é€æ¶ˆæ¯
 static int send_msg(int sock, struct np_server_t *pnp_server, struct sockaddr_in *pclient_addr)
 {
 	assert(pnp_server != NULL);
@@ -256,7 +255,7 @@ ERR:
 	return -1;
 }
 
-/// È«×¶ĞÍnat´¦Àí
+/// å…¨é”¥å‹natå¤„ç†
 static int process_full_cone_nat(int sock, struct np_server_t *pnp_server)
 {
 	assert(pnp_server != NULL);
@@ -266,14 +265,14 @@ static int process_full_cone_nat(int sock, struct np_server_t *pnp_server)
 	{
 		if (pnp_server->addr[i].port == NP_SERVER_PORT && pnp_server->addr[i].sock == sock)
 		{
-			// Í¬¶Ë¿Ú²»Í¬IPµÄsocket»Ø¸´
+			// åŒç«¯å£ä¸åŒIPçš„socketå›å¤
 			return pnp_server->addr[(i+NP_PUBLIC_IP_NUM)%size].sock;
 		}
 	}
 	return -1;
 }
 
-/// ÏŞÖÆ×¶ĞÍnat´¦Àí
+/// é™åˆ¶é”¥å‹natå¤„ç†
 static int process_restricted_cone_nat(int sock, struct np_server_t *pnp_server)
 {
 	assert(pnp_server != NULL);
@@ -282,14 +281,14 @@ static int process_restricted_cone_nat(int sock, struct np_server_t *pnp_server)
 	{
 		if (pnp_server->addr[i].port == NP_SERVER_PORT && pnp_server->addr[i].sock == sock)
 		{
-			// Í¬IP²»Í¬¶Ë¿ÚµÄsocket»Ø¸´
+			// åŒIPä¸åŒç«¯å£çš„socketå›å¤
 			return pnp_server->addr[i+1].sock;
 		}
 	}
 	return -1;
 }
 
-/// Ê×°ü´¦Àíº¯Êı
+/// é¦–åŒ…å¤„ç†å‡½æ•°
 static int process(int sock, struct np_server_t *pnp_server)
 {
 	assert(pnp_server != NULL);
@@ -301,20 +300,20 @@ static int process(int sock, struct np_server_t *pnp_server)
 	case NP_PUBLIC_NETWORK:
 	case NP_SYMMETRIC_NAT:
 	case NP_PORT_RESTRICTED_CONE_NAT:
-		/// ÊÕ·¢Í¬Ò»¸ösocket
+		/// æ”¶å‘åŒä¸€ä¸ªsocket
 		return sock;
 	case NP_FULL_CONE_NAT:
 		return process_full_cone_nat(sock, pnp_server);
 	case NP_RESTRICTED_CONE_NAT:
 		return process_restricted_cone_nat(sock, pnp_server);
 	default:
-		XL_DEBUG(EN_PRINT_ERROR, "error net type");
+		XL_DEBUG(EN_PRINT_ERROR, "error net type, %d", precv->network_type);
 		return -1;
 	}
 	return -1;
 }
 
-/// readÊÂ¼ş»Øµ÷º¯Êı
+/// readäº‹ä»¶å›è°ƒå‡½æ•°
 static void read_callback(evutil_socket_t sock, short __attribute__((unused))event_type, void *args)
 {
 	struct np_server_t* pnp_server = (struct np_server_t *)args;
@@ -336,7 +335,7 @@ static void read_callback(evutil_socket_t sock, short __attribute__((unused))eve
 		return ;
 	}
 
-	XL_DEBUG(EN_PRINT_DEBUG, "sock: %d, send_msg ...", sock);
+	XL_DEBUG(EN_PRINT_DEBUG, "sock: %d, send_msg ...\n", sock);
 	if (-1 == send_msg(sock, pnp_server, &client_addr))
 	{
 		XL_DEBUG(EN_PRINT_ERROR, "call send_msg() failed");
@@ -344,7 +343,7 @@ static void read_callback(evutil_socket_t sock, short __attribute__((unused))eve
 	}
 }
 
-/// ÍË³öÊ±¼äÑ­»·
+/// é€€å‡ºæ—¶é—´å¾ªç¯
 static void exit_callback(evutil_socket_t __attribute__((unused))sock,
 						  short __attribute__((unused))event_type,
 						  void __attribute__((unused))*args)
