@@ -189,8 +189,9 @@ static int recv_msg(int sock, struct np_server_t *pnp_server, struct sockaddr_in
 	psend->ip_addr = pclient_addr->sin_addr.s_addr;
 	psend->port = pclient_addr->sin_port;
 
-	XL_DEBUG(EN_PRINT_DEBUG, "recv msg, msgid: %d, network_type: %d, ip_addr: %u, port: %u",
-		precv->msgid, precv->network_type, psend->ip_addr, psend->port);
+	XL_DEBUG(EN_PRINT_DEBUG, "recv msg, msgid: %d, network_type: %s, ip_addr: %u, port: %u",
+		precv->msgid, get_string_network_type(precv->network_type), inet_ntoa(pclient_addr->sin_addr),
+		psend->port);
 
 	free(precv_msg);
 	cJSON_Delete(proot);
