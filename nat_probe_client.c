@@ -472,7 +472,6 @@ static void np_network_type_probe()
 	{
 		goto EXIT;
 	}
-	goto EXIT;
 	XL_DEBUG(EN_PRINT_NOTICE, "np_is_restricted_cone_nat...");	
 	if (0 == np_is_restricted_cone_nat(&np_client, &network_type))
 	{
