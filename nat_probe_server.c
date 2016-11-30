@@ -269,7 +269,7 @@ static int process_full_cone_nat(int sock, struct np_server_t *pnp_server)
 		if (pnp_server->addr[i].port == NP_SERVER_PORT && pnp_server->addr[i].sock == sock)
 		{
 			// 同端口不同IP的socket回复
-			return pnp_server->addr[(i+NP_PUBLIC_IP_NUM)%size].sock;
+			return pnp_server->addr[(i+1+NP_PUBLIC_IP_NUM)%size].sock;
 		}
 	}
 	return -1;
