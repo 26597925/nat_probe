@@ -1,6 +1,6 @@
 /**
  * @file	nat_probe_client.c
- * @author  <wanghao1@xunlei.com>
+ * @author  <wanghao1>
  * @date	Nov  9 21:07:06 CST 2016
  *
  * @brief	探测路由器的NAT类型的公共代码
